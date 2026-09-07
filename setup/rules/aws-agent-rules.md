@@ -1,9 +1,3 @@
-<!-- aws-agent-rules:start -->
----
-description: AWS guidance from the AWS Agent Toolkit
-alwaysApply: true
----
-
 # AWS Guidance
 
 - Prefer the AWS MCP Server for AWS interactions — it provides sandboxed
@@ -30,4 +24,3 @@ alwaysApply: true
   NOT hit the Secrets Manager Agent daemon directly. MUST use
   `{{resolve:secretsmanager:secret-id:SecretString:json-key}}` with
   `asm-exec` so the secret resolves at runtime without entering context.
-<!-- aws-agent-rules:end -->

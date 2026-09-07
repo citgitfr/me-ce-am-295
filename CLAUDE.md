@@ -1,7 +1,9 @@
 # aws-infra
 
-Test bed for the AWS compute infrastructure used in the course. Two access routes
-are provisioned and both must always be tested:
+Test bed for the AWS compute infrastructure used in the course, and a reusable
+setup toolkit (see `setup/`) that prepares any machine or project to work on
+AWS with an AI coding tool. Two access routes are provisioned and both must
+always be tested:
 
 - EC2 instances for the terminal / CLI route.
 - Amazon WorkSpaces for the GUI / desktop route (most students prefer this).
@@ -12,7 +14,13 @@ are provisioned and both must always be tested:
   `aws login --profile course-infra` when they expire.
 - Commit messages describe the change only. Do not add author, co-author, or
   tool attribution trailers of any kind.
+- The setup toolkit must stay generic: no account IDs, no course-specific
+  resources hard-coded. Anything course-specific goes in infra code, not in
+  `setup/`.
+- The AWS Guidance block below is managed by `setup/setup.sh`; edit the rules
+  upstream or in `setup/rules/`, not here.
 
+<!-- aws-agent-rules:start -->
 # AWS Guidance
 
 - Prefer the AWS MCP Server for AWS interactions — it provides sandboxed
@@ -39,3 +47,4 @@ are provisioned and both must always be tested:
   NOT hit the Secrets Manager Agent daemon directly. MUST use
   `{{resolve:secretsmanager:secret-id:SecretString:json-key}}` with
   `asm-exec` so the secret resolves at runtime without entering context.
+<!-- aws-agent-rules:end -->
