@@ -15,7 +15,8 @@
 #   --region REGION       default Region for the profile (asked interactively if missing)
 #   --experience KIND     advanced = regular AWS account (default)
 #                         new      = signed up via Google/GitHub and created a "project"
-#   --rules-dir DIR       project root to write CLAUDE.md / AGENTS.md rules into (default: repo root)
+#   --rules-dir DIR       optional: also write AI-tool rules files (CLAUDE.md, AGENTS.md, ...) into
+#                         this project. Skipped entirely when omitted.
 #   --yes                 never prompt; fail instead of asking
 #   --remote              headless login: print a URL to open on another device
 #   --force-login         run `aws login` even if the profile already has valid credentials
@@ -31,7 +32,7 @@ HELPER="$SCRIPT_DIR/lib/aws_setup_helper.py"
 TOOLKIT_REGION="us-east-1"   # the Agent Toolkit service only exists here; never substitute the user's Region
 RULES_BASE="https://raw.githubusercontent.com/aws/agent-toolkit-for-aws/refs/heads/main/rules"
 
-PROFILE="" REGION="" EXPERIENCE="advanced" RULES_DIR="$REPO_ROOT"
+PROFILE="" REGION="" EXPERIENCE="advanced" RULES_DIR=""
 YES=0 REMOTE=0 FORCE_LOGIN=0 SKIP_LOGIN=0 SKIP_TOOLKIT=0 CHECK=0
 
 usage() { sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'; }
@@ -109,7 +110,7 @@ fi
 info "profile:    $PROFILE"
 info "region:     ${REGION:-<from existing profile>}"
 info "experience: $EXPERIENCE $( [ "$EXPERIENCE" = new ] && echo '(new AWS experience, account is part of a project)' )"
-info "rules dir:  $RULES_DIR"
+info "rules dir:  ${RULES_DIR:-<none, rules-file step skipped>}"
 
 # ---------------------------------------------------------- check mode ---
 if [ "$CHECK" = 1 ]; then
@@ -123,7 +124,8 @@ if [ "$CHECK" = 1 ]; then
   if id="$(aws sts get-caller-identity --profile "$PROFILE" --output text --query 'Arn' 2>&1)"; then ok "credentials valid: $id"
   else warn "credentials not working: $id"; fi
   step "Check: Agent Toolkit wiring"
-  run_py check --profile "$PROFILE" --dir "$RULES_DIR" && ok "all wired" || warn "something is missing above; re-run setup without --check"
+  check_args=(check --profile "$PROFILE"); [ -n "$RULES_DIR" ] && check_args+=(--dir "$RULES_DIR")
+  run_py "${check_args[@]}" && ok "all wired" || warn "something is missing above; re-run setup without --check"
   exit 0
 fi
 
@@ -229,21 +231,25 @@ n="$(aws agent-toolkit list-available-skills --region "$TOOLKIT_REGION" --profil
 ok "remote catalog reachable: $n skills"
 
 # --------------------------------------------------------- step 7: rules ---
-step "Step 7: Install AWS rules into $RULES_DIR"
-rules_name="aws-agent-rules.md"; [ "$EXPERIENCE" = new ] && rules_name="aws-starter-rules.md"
-tmp_rules="$(mktemp)"; trap 'rm -f "$tmp_rules"' EXIT
-if curl -fsSL --max-time 20 -o "$tmp_rules" "$RULES_BASE/$rules_name" 2>/dev/null && [ -s "$tmp_rules" ]; then
-  info "using latest $rules_name from GitHub"
+if [ -z "$RULES_DIR" ]; then
+  step "Step 7: AI-tool rules files"
+  info "skipped: no --rules-dir given (this repo keeps no CLAUDE.md / AGENTS.md)"
 else
-  cp "$SCRIPT_DIR/rules/$rules_name" "$tmp_rules"; warn "could not download $rules_name, using the copy bundled in setup/rules"
+  step "Step 7: Install AWS rules into $RULES_DIR"
+  rules_name="aws-agent-rules.md"; [ "$EXPERIENCE" = new ] && rules_name="aws-starter-rules.md"
+  tmp_rules="$(mktemp)"; trap 'rm -f "$tmp_rules"' EXIT
+  if curl -fsSL --max-time 20 -o "$tmp_rules" "$RULES_BASE/$rules_name" 2>/dev/null && [ -s "$tmp_rules" ]; then
+    info "using latest $rules_name from GitHub"
+  else
+    cp "$SCRIPT_DIR/rules/$rules_name" "$tmp_rules"; warn "could not download $rules_name, using the copy bundled in setup/rules"
+  fi
+  run_py write-rules --rules-file "$tmp_rules" --dir "$RULES_DIR"
 fi
-run_py write-rules --rules-file "$tmp_rules" --dir "$RULES_DIR"
 
 # ------------------------------------------------------------------ done ---
 step "Setup is complete"
 cat <<EOF
-    Close this session and start a new one so your AI tool picks up the rules,
-    skills, and the aws-mcp server. First prompt to try:
+    Restart your AI tool so it picks up the skills and the aws-mcp server. First prompt to try:
 
         Please make a single page webapp game and deploy it to AWS.
 

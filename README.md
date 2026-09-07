@@ -15,6 +15,9 @@ Students reach the course environment two ways, and both are always tested:
 **[SETUP.md](SETUP.md)** is the setup flow. Follow it by hand, or open your AI
 tool in this repo and say `Follow SETUP.md in this repo and set me up.`
 
+This repo keeps no AI-tool rules files (CLAUDE.md, AGENTS.md and the like);
+they are git-ignored so they never land here by accident.
+
 The short version, for a regular AWS account in us-east-1:
 
 ```bash
@@ -42,6 +45,5 @@ SETUP.md                       the setup flow: parameters, steps, error tables, 
 setup/setup.sh                 macOS / Linux entry point, runs every step in SETUP.md
 setup/setup.ps1                Windows entry point
 setup/lib/aws_setup_helper.py  config patching and checks (stdlib only, Python 3.8+)
-setup/rules/                   bundled AWS rules files, offline fallback
-CLAUDE.md, AGENTS.md           conventions for AI tools; the AWS block inside is written by the toolkit
+setup/rules/                   bundled AWS rules files, used only with --rules-dir for other projects
 ```

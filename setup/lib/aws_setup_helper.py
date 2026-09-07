@@ -320,6 +320,8 @@ def cmd_check(args):
     if not any_skills:
         print("  none found")
         ok = False
+    if not args.dir:
+        return 0 if ok else 1
     print("Project rules files in %s:" % os.path.abspath(args.dir))
     for rel in ("CLAUDE.md", "AGENTS.md"):
         p = os.path.join(args.dir, rel)
@@ -353,7 +355,7 @@ def main(argv=None):
 
     c = sub.add_parser("check")
     c.add_argument("--profile", required=True)
-    c.add_argument("--dir", default=".")
+    c.add_argument("--dir", default=None, help="project whose rules files to report (omit to skip)")
     c.set_defaults(fn=cmd_check)
 
     args = ap.parse_args(argv)

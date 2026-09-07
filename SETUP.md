@@ -19,7 +19,7 @@ When you are done your machine has:
 | A named AWS CLI profile signed in through the browser | no access keys on disk; sessions last 12 hours and renew for 90 days |
 | 23 AWS skills installed for your AI tool | the tool knows how to work with EC2, WorkSpaces, IAM, CDK and so on |
 | The `aws-mcp` MCP server wired to your profile | the tool can call AWS on your behalf |
-| AWS rules in this project's rules files | the tool follows AWS best practice by default |
+| (optional) AWS rules written into another project's AI-tool rules files | only with `--rules-dir`; this repo keeps no CLAUDE.md or AGENTS.md |
 
 ---
 
@@ -55,7 +55,7 @@ Decide these before starting. The script asks for any you leave out.
 | Profile name | `course-infra` | Any name. Keep course credentials separate from personal ones by never using `default`. |
 | AWS experience | advanced | **advanced** = a regular AWS account (root, IAM user, or SSO). **new** = you signed up recently through Google or GitHub and created a *project*. |
 | Region | `us-east-1` | For the *new* experience use the Region your project was created in (AWS Settings, your project, Additional info tab). WorkSpaces is not available in every Region; us-east-1 and us-west-2 both have it, us-east-2 does not. |
-| AI tool | whichever you use | Determines which rules files are written in Step 7. |
+| AI tool | whichever you use | Determines which configs the toolkit updates in Step 5. |
 
 Rules that hold throughout:
 
@@ -237,28 +237,26 @@ aws agent-toolkit list-available-skills --region us-east-1 --profile course-infr
 Success: JSON listing roughly 100 skills with `name`, `description`,
 `skillVersion`. If it errors with `Invalid choice`, the CLI is too old: Step 2.
 
-## Step 7: Install the AWS rules into the project
+## Step 7 (optional): AWS rules for another project
 
-The rules tell your AI tool to prefer the MCP server, load skills, use
-infrastructure as code, and never read secrets into its context. This writes
-them into the rules files of the tools found on your machine:
+This repo deliberately keeps no AI-tool rules files (no CLAUDE.md, AGENTS.md,
+`.cursor/rules`), and the scripts never create them here. If you want the AWS
+rules block in some *other* project, point the script at it:
 
 ```bash
-python3 setup/lib/aws_setup_helper.py write-rules --rules-file setup/rules/aws-agent-rules.md --dir .
+./setup/setup.sh --profile course-infra --region us-east-1 --rules-dir ~/code/other-project
 ```
 
-Use `setup/rules/aws-starter-rules.md` instead for the *new* AWS experience.
-The script fetches the latest copy from the AWS repo first and falls back to
-these bundled files when offline.
+or by hand:
 
-| Tool | File | How it is written |
-| --- | --- | --- |
-| Claude Code | `CLAUDE.md` | a block between `<!-- aws-agent-rules:start -->` and `end` markers; your own text above it is untouched |
-| Codex, Gemini CLI | `AGENTS.md` | same marked block |
-| Cursor | `.cursor/rules/aws-agent-rules.mdc` | whole file, frontmatter first |
-| Kiro | `.kiro/steering/aws-agent-rules.md` | whole file |
+```bash
+python3 setup/lib/aws_setup_helper.py write-rules --rules-file setup/rules/aws-agent-rules.md --dir ~/code/other-project
+```
 
-Pass `--dir <path>` to install the same rules into any other project.
+That writes a marked block into `CLAUDE.md` and `AGENTS.md`, and whole files
+for Cursor (`.cursor/rules/aws-agent-rules.mdc`) and Kiro
+(`.kiro/steering/aws-agent-rules.md`), for whichever tools exist on the
+machine. Use `setup/rules/aws-starter-rules.md` for the *new* AWS experience.
 
 ## Step 8: Verify everything
 
@@ -283,12 +281,10 @@ MCP server entries (aws-mcp):
   ...
 Installed AWS skills:
   Claude Code  ~/.claude/skills: 23 AWS skills
-Project rules files in ...:
-  CLAUDE.md                            has AWS rules block
     ✓ all wired
 ```
 
-Then **restart your AI tool** so it loads the skills, rules, and MCP server.
+Then **restart your AI tool** so it loads the skills and the MCP server.
 In Claude Code, `claude mcp list` should show `aws-mcp ... ✔ Connected`.
 
 First prompt to try in the tool:
@@ -306,9 +302,8 @@ List my EC2 instances and WorkSpaces in us-east-1.
 | Credentials expired | `aws login --profile course-infra` |
 | Check a machine that "doesn't work" | `./setup/setup.sh --check --profile course-infra` |
 | Add a second AWS account | `aws login --profile other`, then re-run `./setup/setup.sh --profile other --region <r>`; it appends `other` to the profile list instead of replacing it |
-| Same setup for another repo | `./setup/setup.sh --profile course-infra --region us-east-1 --rules-dir ~/code/other-project` |
+| AWS rules files for another repo | `./setup/setup.sh --profile course-infra --region us-east-1 --rules-dir ~/code/other-project` |
 | Undo a config change | every edited file has a `<file>.bak-<timestamp>` next to it; copy it back |
-| Refresh the AWS rules after AWS updates them | re-run the script; only the marked block changes |
 
 ## Script options
 
@@ -317,7 +312,7 @@ List my EC2 instances and WorkSpaces in us-east-1.
 | `--profile` / `-Profile` | AWS CLI profile to create or reuse |
 | `--region` / `-Region` | default Region for that profile |
 | `--experience advanced\|new` / `-Experience` | see Parameters |
-| `--rules-dir` / `-RulesDir` | project to write rules files into (default: this repo) |
+| `--rules-dir` / `-RulesDir` | optional: another project to write AI-tool rules files into. Omitted = skipped |
 | `--yes` / `-Yes` | never prompt; fail instead of asking |
 | `--remote` / `-Remote` | headless sign-in, prints a URL |
 | `--force-login` / `-ForceLogin` | sign in again even if credentials still work |

@@ -32,7 +32,6 @@ $RepoRoot = Split-Path -Parent $ScriptDir
 $Helper = Join-Path $ScriptDir "lib\aws_setup_helper.py"
 $ToolkitRegion = "us-east-1"   # the Agent Toolkit service only exists here
 $RulesBase = "https://raw.githubusercontent.com/aws/agent-toolkit-for-aws/refs/heads/main/rules"
-if (-not $RulesDir) { $RulesDir = $RepoRoot }
 
 function Step($m) { Write-Host "`n==> $m" -ForegroundColor White }
 function Info($m) { Write-Host "    $m" }
@@ -80,7 +79,7 @@ if (-not $Region -and -not $Check) {
 Info "profile:    $Profile"
 Info "region:     $(if ($Region) { $Region } else { '<from existing profile>' })"
 Info "experience: $Experience $(if ($Experience -eq 'new') { '(new AWS experience, account is part of a project)' })"
-Info "rules dir:  $RulesDir"
+Info "rules dir:  $(if ($RulesDir) { $RulesDir } else { '<none, rules-file step skipped>' })"
 
 # ---------------------------------------------------------- check mode ---
 if ($Check) {
@@ -95,7 +94,8 @@ if ($Check) {
   $arn = aws sts get-caller-identity --profile $Profile --output text --query Arn 2>&1
   if ($LASTEXITCODE -eq 0) { Ok "credentials valid: $arn" } else { Warn "credentials not working: $arn" }
   Step "Check: Agent Toolkit wiring"
-  $rc = Run-Py @("check", "--profile", $Profile, "--dir", $RulesDir)
+  $checkArgs = @("check", "--profile", $Profile); if ($RulesDir) { $checkArgs += @("--dir", $RulesDir) }
+  $rc = Run-Py $checkArgs
   if ($rc -eq 0) { Ok "all wired" } else { Warn "something is missing above; re-run setup without -Check" }
   exit 0
 }
@@ -190,20 +190,24 @@ if ($n -lt 1) { Die "list-available-skills returned no skills; the CLI may be to
 Ok "remote catalog reachable: $n skills"
 
 # --------------------------------------------------------- step 7: rules ---
-Step "Step 7: Install AWS rules into $RulesDir"
-$rulesName = if ($Experience -eq "new") { "aws-starter-rules.md" } else { "aws-agent-rules.md" }
-$tmpRules = Join-Path ([IO.Path]::GetTempPath()) "aws-rules-$PID.md"
-try { Invoke-WebRequest -UseBasicParsing -Uri "$RulesBase/$rulesName" -OutFile $tmpRules -TimeoutSec 20; Info "using latest $rulesName from GitHub" }
-catch { Copy-Item (Join-Path $ScriptDir "rules\$rulesName") $tmpRules -Force; Warn "could not download $rulesName, using the copy bundled in setup\rules" }
-$rc = Run-Py @("write-rules", "--rules-file", $tmpRules, "--dir", $RulesDir)
-Remove-Item $tmpRules -ErrorAction SilentlyContinue
-if ($rc -ne 0) { Die "writing rules files failed" }
+if (-not $RulesDir) {
+  Step "Step 7: AI-tool rules files"
+  Info "skipped: no -RulesDir given (this repo keeps no CLAUDE.md / AGENTS.md)"
+} else {
+  Step "Step 7: Install AWS rules into $RulesDir"
+  $rulesName = if ($Experience -eq "new") { "aws-starter-rules.md" } else { "aws-agent-rules.md" }
+  $tmpRules = Join-Path ([IO.Path]::GetTempPath()) "aws-rules-$PID.md"
+  try { Invoke-WebRequest -UseBasicParsing -Uri "$RulesBase/$rulesName" -OutFile $tmpRules -TimeoutSec 20; Info "using latest $rulesName from GitHub" }
+  catch { Copy-Item (Join-Path $ScriptDir "rules\$rulesName") $tmpRules -Force; Warn "could not download $rulesName, using the copy bundled in setup\rules" }
+  $rc = Run-Py @("write-rules", "--rules-file", $tmpRules, "--dir", $RulesDir)
+  Remove-Item $tmpRules -ErrorAction SilentlyContinue
+  if ($rc -ne 0) { Die "writing rules files failed" }
+}
 
 # ------------------------------------------------------------------ done ---
 Step "Setup is complete"
 Write-Host @"
-    Close this session and start a new one so your AI tool picks up the rules,
-    skills, and the aws-mcp server. First prompt to try:
+    Restart your AI tool so it picks up the skills and the aws-mcp server. First prompt to try:
 
         Please make a single page webapp game and deploy it to AWS.
 
