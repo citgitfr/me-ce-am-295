@@ -324,7 +324,8 @@ List my EC2 instances and WorkSpaces in us-east-1.
 Once a machine passes Step 8 it is ready for the course infrastructure work.
 Both student routes get their own guides as they are built:
 
-- **Terminal route:** EC2 instance, reached over SSH or Session Manager.
+- **Terminal route:** done, see [infra/ec2/README.md](infra/ec2/README.md).
+  One Ubuntu instance per person, reached through Session Manager.
 - **GUI route:** Amazon WorkSpaces desktop, reached from the browser or the
   WorkSpaces client. Requires a directory (Simple AD or AD Connector) first.
 

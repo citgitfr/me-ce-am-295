@@ -38,10 +38,18 @@ The toolkit is not tied to this course's account. Any profile, Region, or
 project directory works, so it doubles as a general "get this machine ready
 for AWS" script.
 
+## Course infrastructure
+
+- **[infra/ec2/](infra/ec2/README.md)**: the terminal route. One Ubuntu instance per
+  person as a CloudFormation stack, reached through Session Manager with no SSH
+  key or open port. Deploy, smoke-test, and destroy scripts included.
+- WorkSpaces (GUI route): next.
+
 ## Layout
 
 ```text
 SETUP.md                       the setup flow: parameters, steps, error tables, day-to-day
+infra/ec2/                     terminal route: template.yaml, deploy.sh, run.sh, smoke.sh, destroy.sh, README.md
 setup/setup.sh                 macOS / Linux entry point, runs every step in SETUP.md
 setup/setup.ps1                Windows entry point
 setup/lib/aws_setup_helper.py  config patching and checks (stdlib only, Python 3.8+)
