@@ -224,24 +224,44 @@ def upsert_marked_block(path, body):
     return "created"
 
 
+def write_whole_file(path, content):
+    """Files the toolkit owns outright (Cursor .mdc needs frontmatter first, so no markers)."""
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as fh:
+            if fh.read() == content:
+                return "up to date"
+        status = "updated"
+    else:
+        os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+        status = "created"
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(content)
+    return status
+
+
+OWNED_NOTE = "<!-- managed by setup/setup.sh, edit setup/rules/ upstream instead -->\n\n"
+
+
 def cmd_write_rules(args):
     with open(args.rules_file, encoding="utf-8") as fh:
         body = fh.read()
     h = home(args)
     tools = detect_tools(h) if args.tools == "auto" else [t.strip() for t in args.tools.split(",") if t.strip()]
     d = args.dir
+    # (tool, path, content, owned): owned files are rewritten whole; shared files get a marked block
     targets = []
     if "claude" in tools:
-        targets.append(("Claude Code", os.path.join(d, "CLAUDE.md"), body))
+        targets.append(("Claude Code", os.path.join(d, "CLAUDE.md"), body, False))
     if "codex" in tools:
-        targets.append(("Codex/Gemini", os.path.join(d, "AGENTS.md"), body))
+        targets.append(("Codex/Gemini", os.path.join(d, "AGENTS.md"), body, False))
     if "cursor" in tools:
-        mdc = "---\ndescription: AWS guidance from the AWS Agent Toolkit\nalwaysApply: true\n---\n\n" + body
-        targets.append(("Cursor", os.path.join(d, ".cursor", "rules", "aws-agent-rules.mdc"), mdc))
+        mdc = "---\ndescription: AWS guidance from the AWS Agent Toolkit\nalwaysApply: true\n---\n\n" + OWNED_NOTE + body
+        targets.append(("Cursor", os.path.join(d, ".cursor", "rules", "aws-agent-rules.mdc"), mdc, True))
     if "kiro" in tools:
-        targets.append(("Kiro", os.path.join(d, ".kiro", "steering", "aws-agent-rules.md"), body))
-    for tool, path, content in targets:
-        print("  %-12s %s: %s" % (tool, os.path.relpath(path, d), upsert_marked_block(path, content)))
+        targets.append(("Kiro", os.path.join(d, ".kiro", "steering", "aws-agent-rules.md"), OWNED_NOTE + body, True))
+    for tool, path, content, owned in targets:
+        status = write_whole_file(path, content) if owned else upsert_marked_block(path, content)
+        print("  %-12s %s: %s" % (tool, os.path.relpath(path, d), status))
     return 0
 
 
@@ -301,11 +321,14 @@ def cmd_check(args):
         print("  none found")
         ok = False
     print("Project rules files in %s:" % os.path.abspath(args.dir))
-    for rel in ("CLAUDE.md", "AGENTS.md", ".cursor/rules/aws-agent-rules.mdc", ".kiro/steering/aws-agent-rules.md"):
+    for rel in ("CLAUDE.md", "AGENTS.md"):
         p = os.path.join(args.dir, rel)
         if os.path.exists(p):
             has = MARK_START in open(p, encoding="utf-8").read()
             print("  %-36s %s" % (rel, "has AWS rules block" if has else "present, no AWS rules block"))
+    for rel in (".cursor/rules/aws-agent-rules.mdc", ".kiro/steering/aws-agent-rules.md"):
+        if os.path.exists(os.path.join(args.dir, rel)):
+            print("  %-36s present (managed by the toolkit)" % rel)
     return 0 if ok else 1
 
 
