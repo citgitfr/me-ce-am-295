@@ -2,8 +2,8 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: >-
   One clean Ubuntu 24.04 development instance for the course. No SSH key and no
   inbound ports; access is through AWS Systems Manager Session Manager using the
-  instance role. Baseline toolchain (git, python3, uv, node LTS, AWS CLI) is
-  installed by cloud-init on first boot.
+  instance role. Minimal toolchain installed by cloud-init on first boot: uv with a managed
+  Python, node LTS, AWS CLI, build tools. Git and python3 come with Ubuntu.
 
 Parameters:
   InstanceName:
@@ -117,27 +117,31 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
-          # cloud-init first boot: baseline toolchain. Log: /var/log/cloud-init-output.log
+          # cloud-init first boot. Log: /var/log/cloud-init-output.log
+          # Minimal by design: Python is managed entirely by uv (interpreter, envs, tools);
+          # the system python3 stays an OS component that nothing in ~/projects touches.
           set -eux
           export DEBIAN_FRONTEND=noninteractive
           hostnamectl set-hostname ${InstanceName}
 
           apt-get update
           apt-get install -y --no-install-recommends \
-            git curl ca-certificates unzip zip jq htop tmux tree ripgrep \
-            build-essential pkg-config \
-            python3 python3-venv python3-pip
+            unzip zip build-essential pkg-config
 
-          # node LTS (agent SDKs, Claude Code, MCP servers)
+          # node LTS: Anthropic JS SDK, MCP servers, Claude Code
           curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
           apt-get install -y nodejs
 
-          # AWS CLI v2 (arm64)
+          # AWS CLI v2 (arm64): reads API keys from Parameter Store with the instance role
           curl -fsSL https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip -o /tmp/awscliv2.zip
           unzip -q /tmp/awscliv2.zip -d /tmp && /tmp/aws/install && rm -rf /tmp/aws /tmp/awscliv2.zip
 
-          # uv for the ubuntu user (python envs without touching the system python)
+          # uv for the ubuntu user, with a uv-managed Python so the first project needs no download
           sudo -u ubuntu -H bash -c 'curl -LsSf https://astral.sh/uv/install.sh | sh'
+          sudo -u ubuntu -H /home/ubuntu/.local/bin/uv python install 3.12
+          # never fall back to the OS interpreter for projects, envs, or tools
+          sudo -u ubuntu -H mkdir -p /home/ubuntu/.config/uv
+          printf 'python-preference = "only-managed"\n' | sudo -u ubuntu -H tee /home/ubuntu/.config/uv/uv.toml >/dev/null
 
           # global npm installs (Claude Code, MCP servers) go to ~/.local without sudo
           sudo -u ubuntu -H npm config set prefix /home/ubuntu/.local
@@ -145,7 +149,7 @@ Resources:
           # project layout
           sudo -u ubuntu -H mkdir -p /home/ubuntu/projects
           cat > /etc/motd <<'EOF'
-          course-dev: Ubuntu 24.04 arm64. Your work goes in ~/projects. Tools: git, python3, uv, node, aws.
+          ${InstanceName}: Ubuntu 24.04 arm64. Work in ~/projects. Python via uv only (uv init / uv add / uv run / uv tool). Also: node, npm, aws, git.
           EOF
 
           apt-get autoremove -y && apt-get clean

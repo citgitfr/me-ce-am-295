@@ -10,13 +10,48 @@ not assumed.
 | Piece | Choice | Why |
 | --- | --- | --- |
 | Instance | `t4g.medium`, 2 vCPU, 4 GB, about 0.034 USD/h | enough for node + python agent dev; `t4g.small` for shell-only |
-| Disk | 30 GB gp3, encrypted, deleted with the stack | toolchain uses 3.3 GB, leaving about 25 GB for projects |
+| Disk | 30 GB gp3, encrypted, deleted with the stack | toolchain uses 3.1 GB, leaving about 25 GB for projects |
 | Image | Ubuntu 24.04 LTS, resolved at deploy time from the public SSM parameter | always current, no hard-coded AMI id |
 | Network | default VPC, public subnet, security group with **no inbound rules** | nothing listens to the internet |
 | Access | AWS Systems Manager Session Manager through the instance role | no SSH key, no port 22, every session is logged in CloudTrail |
 | Metadata | IMDSv2 required | blocks credential-theft via SSRF |
 | Instance role | `AmazonSSMManagedInstanceCore` plus a Deny that fences Parameter Store reads to `/course/<owner>/*` and `/course/shared/*` | the managed policy alone can read every parameter in the account |
-| First boot | cloud-init installs git, build tools, python3, uv, node 22, AWS CLI, jq, ripgrep, tmux, tree, and creates `~/projects` | 75 seconds, no errors |
+| First boot | cloud-init installs uv with a managed Python 3.12, node 22, AWS CLI, build tools, unzip; creates `~/projects` | 75 seconds, no errors, adds 53 packages and 1 GB to the bare image |
+
+## Bare image versus what we add
+
+Measured on 2026-09-07 by launching the same Ubuntu 24.04 arm64 image with no
+first-boot script and comparing.
+
+| Already on a bare Ubuntu 24.04 EC2 | Added by our first-boot script | Deliberately not added |
+| --- | --- | --- |
+| git, curl, wget, jq, tmux, htop, vim, nano | uv, with a managed CPython 3.12 (90 MB) and `python-preference = "only-managed"` | python3-pip, python3-venv: Python is uv-only |
+| python3 3.12 (OS component, no pip, no ensurepip) | node 22 + npm, from NodeSource | Docker |
+| SSM agent, sshd, cron, chrony, unattended-upgrades | AWS CLI v2 | Claude Code (one `npm install -g` away) |
+| ubuntu user with passwordless sudo, empty home | build-essential, pkg-config, unzip, zip | ripgrep, tree, editors |
+| 8 GB root disk, 636 packages | npm prefix `~/.local`, `~/projects`, hostname, login banner | anything project-specific |
+
+Result: 689 packages, 3.1 GB used of 30 GB.
+
+### Python is uv only
+
+The OS `python3` stays untouched for the system's own use. Everything a student
+does goes through uv, which owns the interpreter, the environments, and any
+global CLI tools:
+
+```bash
+uv init my-agent && cd my-agent      # project with pyproject.toml, uv.lock, .venv
+uv add anthropic                     # dependency
+uv run python main.py                # runs inside the project env
+uv tool install ruff                 # global CLI in ~/.local/bin, no sudo
+uv python install 3.13               # another interpreter, if a project needs it
+```
+
+Verified: `uv run` uses CPython 3.12.14 from `~/.local/share/uv/python`, never
+`/usr/bin/python3` (3.12.3), because `~/.config/uv/uv.toml` sets
+`python-preference = "only-managed"`. `uv tool install ruff` worked without sudo.
+The alternative for projects that need conda-style native packages (CUDA and
+the like) is pixi; nothing here prevents installing it per project.
 
 ## Commands
 
@@ -63,7 +98,9 @@ Verified as the `ubuntu` user (uid 1000, passwordless sudo, bash login shell):
 
 ```text
 /home/ubuntu
-├── .local/bin/          uv, uvx, and anything `npm install -g` puts there (npm prefix is ~/.local)
+├── .local/bin/          uv, uvx, python3.12 (uv-managed), and anything `npm install -g` or `uv tool install` puts there
+├── .local/share/uv/     managed interpreters and caches
+├── .config/uv/uv.toml   python-preference = only-managed
 ├── .bashrc, .profile    ~/.local/bin is first on PATH in login shells
 └── projects/            all student work goes here
     └── agent-demo/      example: uv init + uv add anthropic + git init
@@ -75,10 +112,11 @@ Verified as the `ubuntu` user (uid 1000, passwordless sudo, bash login shell):
 
 What worked, in order:
 
-- `uv init`, `uv add anthropic`, `uv run` with Python 3.12 from the system, no extra downloads.
+- `uv init`, `uv add anthropic`, `uv run` with the uv-managed Python 3.12, no extra downloads.
 - `npm install -g @anthropic-ai/claude-code` as `ubuntu`, no sudo, `claude` on PATH.
 - `git clone` from GitHub, `pip`/`npm` registries and the Anthropic API host all reachable outbound.
 - Files under `~/projects`, installed tools, and the SSM connection all survive a reboot (back in 30 s).
+- Destroy and recreate from scratch takes about 6 minutes and yields an identical box.
 - A CloudFormation update that only touches IAM completes in about 45 s without touching the instance.
 
 ### API keys
