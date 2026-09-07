@@ -211,4 +211,5 @@ Write-Host @"
     Another account later:  aws login --profile <other>, then add <other> to the
     space-separated AWS_MCP_PROXY_PROFILES value in each MCP config and restart the tool.
     Re-run any time:  powershell -ExecutionPolicy Bypass -File setup\setup.ps1 -Check -Profile $Profile
+    Full flow and troubleshooting: SETUP.md
 "@

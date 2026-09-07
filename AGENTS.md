@@ -1,24 +1,17 @@
 # aws-infra
 
-Test bed for the AWS compute infrastructure used in the course, and a reusable
-setup toolkit (see `setup/`) that prepares any machine or project to work on
-AWS with an AI coding tool. Two access routes are provisioned and both must
-always be tested:
+Conventions for AI tools working in this repo. Setup instructions live in
+SETUP.md, not here.
 
-- EC2 instances for the terminal / CLI route.
-- Amazon WorkSpaces for the GUI / desktop route (most students prefer this).
-
-## Conventions
-
-- AWS CLI profile: `course-infra`. Region: `us-east-1`. Renew credentials with
-  `aws login --profile course-infra` when they expire.
-- Commit messages describe the change only. Do not add author, co-author, or
-  tool attribution trailers of any kind.
-- The setup toolkit must stay generic: no account IDs, no course-specific
-  resources hard-coded. Anything course-specific goes in infra code, not in
-  `setup/`.
-- The AWS Guidance block below is managed by `setup/setup.sh`; edit the rules
-  upstream or in `setup/rules/`, not here.
+- Test bed for the course's AWS compute infra. Two student routes, EC2
+  (terminal) and Amazon WorkSpaces (GUI); every infra change is tested on both.
+- AWS CLI profile `course-infra`, Region `us-east-1`. Renew with
+  `aws login --profile course-infra`.
+- Commit messages describe the change only. No author, co-author, or tool
+  attribution trailers of any kind.
+- `setup/` stays generic: no account IDs or course resources hard-coded.
+- The AWS Guidance block below is written by `setup/setup.sh`; change the
+  rules in `setup/rules/` or upstream, not here.
 
 <!-- aws-agent-rules:start -->
 # AWS Guidance

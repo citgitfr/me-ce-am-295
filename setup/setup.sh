@@ -251,4 +251,5 @@ cat <<EOF
     Another account later:  aws login --profile <other>, then add <other> to the
     space-separated AWS_MCP_PROXY_PROFILES value in each MCP config and restart the tool.
     Re-run any time:  $0 --check --profile $PROFILE
+    Full flow and troubleshooting: SETUP.md
 EOF
