@@ -1,39 +1,77 @@
 # Your course WorkSpace
 
-Every student gets a personal Windows desktop in the cloud, an Amazon WorkSpace.
-This page gets you onto it and installs the course tools. It takes about 15 minutes.
+An Amazon WorkSpace is a Windows desktop in the cloud that you open from a
+browser. Part 1 creates it. Part 2 opens it and installs VS Code, Claude Code
+and Claude Desktop.
 
-## What you receive
+Everything in this course uses one AWS Region: **US West (Oregon)**, `us-west-2`.
 
-| Item | Example |
-| --- | --- |
-| AWS account ID | `123456789012` |
-| IAM username | `jdoe` |
-| IAM password | given to you separately |
-| WorkSpace ID | `ws-a1b2c3d4e` |
+## Part 1: Set up the WorkSpace
 
-The course uses one AWS Region: **US West (Oregon)**, `us-west-2`.
+You need an AWS console sign-in (account ID, IAM username, IAM password) that
+is allowed to create WorkSpaces. The course directory is already set up; you
+only create the desktop. Provisioning takes about 20 minutes.
 
-## 1. Find your registration code
+### Recommended settings
 
-1. Open `https://<account-id>.signin.aws.amazon.com/console` and sign in with
-   your IAM username and password. Set a new password if asked.
+| Setting | Choose | Why |
+| --- | --- | --- |
+| Operating system | Windows Server 2022 | The install script in Part 2 is for Windows. Avoid 2025: with nested virtualization it restarts instead of resuming. |
+| Compute | **Performance**: 2 vCPU, 8 GB memory | Enough for VS Code, Claude and a browser. Pick **Power** (4 vCPU, 16 GB) if you plan to run Docker. |
+| Storage | Root 80 GB, user 100 GB | The Performance default. Volumes can grow later but never shrink. Your files live on the user volume. Power starts at root 175 GB. |
+| Running mode | **AutoStop**, 1 hour | Billed by the hour and stops itself when you disconnect. AlwaysOn bills a full month. |
+| Encryption | Root and user volume, default key | No cost, no effect on use. |
+| Nested virtualization | **Enabled** | No cost. Allows WSL2 and Docker Desktop. |
+
+The recommended setup costs roughly 9 USD a month, plus about 0.47 USD per
+hour while it runs. Check <https://aws.amazon.com/workspaces/pricing/> for
+current rates.
+
+### Steps
+
+1. Sign in at `https://<account-id>.signin.aws.amazon.com/console`. Set a new
+   password if asked.
 2. In the Region menu at the top right, choose **US West (Oregon)**.
-3. Search for **WorkSpaces**, open it, and select your WorkSpace ID.
-4. Note the **registration code** and the **username** shown for your WorkSpace.
+3. Open **WorkSpaces**. Choose **Launch WorkSpaces**, then **Personal**, then
+   **Create WorkSpaces**.
+4. Skip **Onboarding** and choose **Next**.
+5. Under **Configure WorkSpaces**:
+   - **Bundle**: choose **Use a base WorkSpaces bundle**, then
+     **Performance with Windows 10 (Server 2022 based) (WSP)**. Do not pick a
+     bundle ending in **(BYOP)**: it has no streaming protocol and the
+     WorkSpaces client cannot open it.
+   - **Running mode**: **AutoStop**.
+   - **Tags**: add `course` = `me-ce-am-295` and `owner` = your IAM username.
+6. Under **Select directory**, choose the course directory. Choose **Create
+   users** and enter:
+   - **Username**: the same as your IAM username.
+   - **First name**, **Last name**, and the **Email** where you want the invitation.
+7. Under **Customization**:
+   - **Storage**: keep root 80 GB and user 100 GB.
+   - **Encryption**: select the root volume and the user volume.
+   - **Nested virtualization**: select **Enable Nested Virtualization**.
+8. Choose **Create WorkSpaces**.
 
-## 2. Open your desktop
+The status starts as **Pending** and changes to **Available** in about 20
+minutes. An invitation email then arrives with a link to set your desktop
+password and your **registration code**. Note your **WorkSpace ID** from the
+console too; it identifies your desktop when you ask for help.
 
-1. Go to <https://clients.amazonworkspaces.com/webclient>.
-2. Enter the registration code.
-3. Sign in with that username and your password.
+## Part 2: Start the WorkSpace and install the tools
 
-A stopped desktop takes about two minutes to start. It stops itself after an
-hour without activity; your files and installed apps stay. Desktop client apps
-for macOS, Windows, iPad and Chromebook are at <https://clients.amazonworkspaces.com/>
-and work the same way.
+### Open the desktop
 
-## 3. Install the course tools
+1. Open the link in the invitation email and set your desktop password.
+2. Go to <https://clients.amazonworkspaces.com/webclient> and enter the
+   registration code.
+3. Sign in with your WorkSpace username and desktop password.
+
+If the email is lost, the registration code is also on your WorkSpace's page in
+the WorkSpaces console. A stopped desktop takes about two minutes to start.
+When you finish, choose **Disconnect** in the client menu so AutoStop can stop
+it; your files and installed apps stay.
+
+### Install VS Code, Claude Code and Claude Desktop
 
 On the desktop, open **Windows PowerShell** from the Start menu and paste:
 
@@ -42,14 +80,7 @@ irm https://raw.githubusercontent.com/citgitfr/me-ce-am-295/main/infra/workspace
 ```
 
 It installs into your own profile, without administrator rights, in about five
-minutes. Running it again is safe.
-
-| Tool | What it is for |
-| --- | --- |
-| VS Code | code editor |
-| Claude Code | Claude in the terminal, started with `claude` |
-| Claude Desktop | the Claude app, with Chat and a graphical Code tab |
-| Git | version control; Claude Code and the Code tab need it |
+minutes. Running it again is safe. It also installs Git, which Claude Code needs.
 
 When it finishes, **open a new PowerShell window** and check that every line is green:
 
@@ -57,9 +88,9 @@ When it finishes, **open a new PowerShell window** and check that every line is 
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/citgitfr/me-ce-am-295/main/infra/workspaces/install.ps1))) -Check
 ```
 
-## 4. First start
+### First start
 
-- **Claude Code.** Run the lines below. A browser tab opens; sign in with your
+- **Claude Code.** Run the line below. A browser tab opens; sign in with your
   claude.ai account.
 
   ```powershell
@@ -67,23 +98,24 @@ When it finishes, **open a new PowerShell window** and check that every line is 
   ```
 
 - **Claude Desktop.** Open **Claude** from the Start menu and sign in with the
-  same account. For the **Code** tab, choose **Local** and a folder under
-  `~\projects`.
+  same account. In the **Code** tab, choose **Local** and a folder under `~\projects`.
 - **VS Code.** Open it and use **File > Open Folder** on `~\projects`.
 
 Claude Code and the Code tab need a paid claude.ai plan. Keep your work under
-`~\projects`: it lives on your user volume, which survives a desktop rebuild.
+`~\projects`, which is on your user volume.
 
 ## Troubleshooting
 
 | Problem | Fix |
 | --- | --- |
-| The console shows no WorkSpaces | Switch the Region to US West (Oregon). |
-| The registration code is rejected | Copy it again from the WorkSpaces console. |
-| The desktop rejects your password | Send your WorkSpace ID to the instructor. |
+| The console shows no WorkSpaces, or no course directory | Switch the Region to US West (Oregon). |
+| **Create WorkSpaces** is denied | Your IAM user lacks permission; ask the instructor. |
+| No invitation email after the status is Available | Select the WorkSpace, choose **Actions**, **Invite users**, **Send invite**. |
+| The registration code is rejected | Copy it again from the email or the WorkSpaces console. |
+| The desktop rejects your password | Ask the instructor to reset it, with your WorkSpace ID. |
 | The desktop stays on "Starting" | Wait five minutes, then choose Restart WorkSpace in the client menu. |
 | `claude` is not recognized | Open a new PowerShell window. |
-| A step prints a yellow line | Run the install command again. If it repeats, send the output to the instructor. |
-| Claude Desktop is refused by Windows | Download it from <https://claude.com/download> in the desktop's browser. |
-| Claude asks you to upgrade | The Code features need a paid claude.ai plan. |
-| Docker or WSL does not work | Expected: WorkSpaces do not support them. |
+| An install step prints a yellow line | Run the install command again. If it repeats, send the output to the instructor. |
+| Windows refuses Claude Desktop | Download it from <https://claude.com/download> in the desktop's browser. |
+| Claude asks you to upgrade | Claude Code and the Code tab need a paid claude.ai plan. |
+| WSL or Docker will not start | Nested virtualization is off. In the console, select the WorkSpace, choose **Actions**, **Enable Nested Virtualization**, then start the WorkSpace again. |

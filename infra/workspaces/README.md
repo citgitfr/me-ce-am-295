@@ -1,7 +1,8 @@
 # WorkSpaces: instructor notes
 
-Students follow [WORKSPACE.md](../../WORKSPACE.md): access the desktop, then run
-one command that installs the course tools. This folder holds what sits behind it.
+Students follow [WORKSPACE.md](../../WORKSPACE.md) in two parts: create the
+WorkSpace in the console with the recommended settings, then open it and run one
+command that installs the course tools. This folder holds what sits behind it.
 
 | File | Purpose |
 | --- | --- |
@@ -16,8 +17,9 @@ those resources.
 
 - A dedicated VPC, WorkSpaces in private subnets behind a NAT gateway, no public IPs.
 - AWS Managed Microsoft AD. Every WorkSpace in the class shares one registration code.
-- WorkSpaces Personal, Windows Server 2022 desktop, Performance bundle
-  (2 vCPU, 8 GB), AutoStop after 60 minutes.
+- WorkSpaces Personal. The guide's recommended desktop: Windows Server 2022,
+  Performance (2 vCPU, 8 GB), root 80 GB and user 100 GB, AutoStop after one
+  hour, both volumes encrypted, nested virtualization enabled.
 - Students are **not** local administrators, which is why install.ps1 installs
   everything into the user profile.
 
@@ -33,7 +35,9 @@ password; `handout.sh` warns when the usernames differ.
 
 Before students get passwords, replace their administrator access with
 [student-policy.json](student-policy.json): it allows signing in, changing the
-password, and seeing WorkSpaces, nothing else.
+password, and seeing WorkSpaces, nothing else. If students create their own
+WorkSpaces (Part 1 of the guide), they also need permission to launch
+WorkSpaces and create directory users; that policy is not written yet.
 
 ## install.ps1
 
@@ -73,6 +77,7 @@ and the Desktop Code tab need a paid plan.
 | Claude Desktop MSIX accepted by Windows Server 2022 | pending, round 1; Desktop officially lists Windows 10 or later |
 | `claude` sign-in and first session; Desktop sign-in and Code tab | pending, round 1 |
 | `-Uninstall` followed by a clean install | pending, round 2 |
+| Part 1 console steps clicked through against the live console | pending; written from the AWS admin guide |
 
 ## Findings worth keeping
 
@@ -81,5 +86,10 @@ and the Desktop Code tab need a paid plan.
   "only for directories with WorkspaceType POOLS". A hybrid activation would
   work, but it needs an administrator on each desktop, so testing goes through
   the GUI.
+- **Nested virtualization works on WorkSpaces Personal** for Windows Server
+  2019 and later on non-GPU bundles other than Value, at no extra cost. It
+  enables WSL2 and Docker Desktop. On Windows Server 2025 with AutoStop the
+  desktop reboots instead of hibernating, which is why the guide picks 2022.
+  It can be switched on for an existing WorkSpace from the console.
 - **Every IAM user in the account is an administrator today**, which is the
   reason for the student policy above.
