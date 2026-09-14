@@ -1,0 +1,17 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ManageOwnSignIn",
+      "Effect": "Allow",
+      "Action": ["iam:GetUser", "iam:ChangePassword", "iam:GetAccountPasswordPolicy", "sts:GetCallerIdentity"],
+      "Resource": "*"
+    },
+    {
+      "Sid": "SeeWorkSpaces",
+      "Effect": "Allow",
+      "Action": ["workspaces:DescribeWorkspaces", "workspaces:DescribeWorkspaceDirectories", "workspaces:DescribeWorkspacesConnectionStatus"],
+      "Resource": "*"
+    }
+  ]
+}

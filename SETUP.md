@@ -31,13 +31,13 @@ detects what is already in place, and is safe to re-run.
 macOS / Linux:
 
 ```bash
-./setup/setup.sh --profile course-infra --region us-east-1
+./setup/setup.sh --profile course-infra --region us-west-2
 ```
 
 Windows (PowerShell):
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File setup\setup.ps1 -Profile course-infra -Region us-east-1
+powershell -ExecutionPolicy Bypass -File setup\setup.ps1 -Profile course-infra -Region us-west-2
 ```
 
 Then jump to [Step 8: Verify](#step-8-verify-everything). If anything fails,
@@ -54,7 +54,7 @@ Decide these before starting. The script asks for any you leave out.
 | Operating system | detected | macOS, Linux (glibc, x86_64 or arm64), or Windows. Alpine / musl Linux is not supported by the AWS installer. |
 | Profile name | `course-infra` | Any name. Keep course credentials separate from personal ones by never using `default`. |
 | AWS experience | advanced | **advanced** = a regular AWS account (root, IAM user, or SSO). **new** = you signed up recently through Google or GitHub and created a *project*. |
-| Region | `us-east-1` | For the *new* experience use the Region your project was created in (AWS Settings, your project, Additional info tab). WorkSpaces is not available in every Region; us-east-1 and us-west-2 both have it, us-east-2 does not. |
+| Region | `us-west-2` for course work, `us-east-1` for the original EC2 test | Everything student-facing (WorkSpaces, Parameter Store keys) is in us-west-2. For the *new* experience use the Region your project was created in (AWS Settings, your project, Additional info tab). |
 | AI tool | whichever you use | Determines which configs the toolkit updates in Step 5. |
 
 Rules that hold throughout:
@@ -136,8 +136,8 @@ Success: `aws --version` shows the new version and `aws agent-toolkit help` work
 Set the Region on the profile, then sign in through the browser:
 
 ```bash
-aws configure set region us-east-1 --profile course-infra
-aws login --region us-east-1 --profile course-infra
+aws configure set region us-west-2 --profile course-infra
+aws login --region us-west-2 --profile course-infra
 ```
 
 A browser tab opens. Complete the sign-in there and return to the terminal.
@@ -150,7 +150,7 @@ another browser sign-in. After that, run the same `aws login` again.
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | `Profile 'course-infra' is already configured with Access Key credentials` | static keys exist under that profile in `~/.aws/credentials` | use a different profile name, or delete the `aws_access_key_id` / `aws_secret_access_key` lines under `[course-infra]` and retry |
-| browser does not open (SSH session, container, WorkSpace without a browser) | headless | `aws login --region us-east-1 --profile course-infra --remote` prints a URL to open on any device |
+| browser does not open (SSH session, container, WorkSpace without a browser) | headless | `aws login --region us-west-2 --profile course-infra --remote` prints a URL to open on any device |
 | non-zero exit | tab closed or timed out | run `aws login` again and finish in the browser |
 
 ## Step 4: Verify access
@@ -244,7 +244,7 @@ This repo deliberately keeps no AI-tool rules files (no CLAUDE.md, AGENTS.md,
 rules block in some *other* project, point the script at it:
 
 ```bash
-./setup/setup.sh --profile course-infra --region us-east-1 --rules-dir ~/code/other-project
+./setup/setup.sh --profile course-infra --region us-west-2 --rules-dir ~/code/other-project
 ```
 
 or by hand:
@@ -273,7 +273,7 @@ Expected output, all green:
     aws-cli/2.36.x ...  at ~/.local/bin/aws
     ✓ supports agent-toolkit commands
 ==> Check: profile course-infra
-    region: us-east-1
+    region: us-west-2
     ✓ credentials valid: arn:aws:iam::<account>:user/<you>
 ==> Check: Agent Toolkit wiring
 MCP server entries (aws-mcp):
@@ -290,7 +290,7 @@ In Claude Code, `claude mcp list` should show `aws-mcp ... ✔ Connected`.
 First prompt to try in the tool:
 
 ```text
-List my EC2 instances and WorkSpaces in us-east-1.
+List my WorkSpaces in us-west-2.
 ```
 
 ---
@@ -302,7 +302,7 @@ List my EC2 instances and WorkSpaces in us-east-1.
 | Credentials expired | `aws login --profile course-infra` |
 | Check a machine that "doesn't work" | `./setup/setup.sh --check --profile course-infra` |
 | Add a second AWS account | `aws login --profile other`, then re-run `./setup/setup.sh --profile other --region <r>`; it appends `other` to the profile list instead of replacing it |
-| AWS rules files for another repo | `./setup/setup.sh --profile course-infra --region us-east-1 --rules-dir ~/code/other-project` |
+| AWS rules files for another repo | `./setup/setup.sh --profile course-infra --region us-west-2 --rules-dir ~/code/other-project` |
 | Undo a config change | every edited file has a `<file>.bak-<timestamp>` next to it; copy it back |
 
 ## Script options
@@ -324,10 +324,12 @@ List my EC2 instances and WorkSpaces in us-east-1.
 Once a machine passes Step 8 it is ready for the course infrastructure work.
 Both student routes get their own guides as they are built:
 
-- **Terminal route:** done, see [infra/ec2/README.md](infra/ec2/README.md).
+- **GUI route (primary):** an Amazon WorkSpaces desktop in us-west-2, reached
+  from the browser or the WorkSpaces client. Students follow
+  [WORKSPACE.md](WORKSPACE.md); the instructor side is in
+  [infra/workspaces/README.md](infra/workspaces/README.md).
+- **Terminal route (fallback):** see [infra/ec2/README.md](infra/ec2/README.md).
   One Ubuntu instance per person, reached through Session Manager.
-- **GUI route:** Amazon WorkSpaces desktop, reached from the browser or the
-  WorkSpaces client. Requires a directory (Simple AD or AD Connector) first.
 
-Every change to the infrastructure is tested on both routes before it reaches
-students.
+Every change to the infrastructure is tested on the WorkSpace first, and on
+EC2 where it applies.
