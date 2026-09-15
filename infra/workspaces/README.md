@@ -77,7 +77,9 @@ and the Desktop Code tab need a paid plan.
 | Claude Desktop MSIX accepted by Windows Server 2022 | pending, round 1; Desktop officially lists Windows 10 or later |
 | `claude` sign-in and first session; Desktop sign-in and Code tab | pending, round 1 |
 | `-Uninstall` followed by a clean install | pending, round 2 |
+| Part 1 recommended settings match the reference WorkSpace | verified 2026-09-15: bundle, OS, compute, 80/100 GB volumes, AutoStop 60 min, WSP and encryption all match; nested virtualization was off and was switched on |
 | Part 1 console steps clicked through against the live console | pending; written from the AWS admin guide |
+| Claude Desktop without admin rights | pending, round 1; its package includes a Windows service, which Windows usually installs only with admin rights |
 
 ## Findings worth keeping
 
