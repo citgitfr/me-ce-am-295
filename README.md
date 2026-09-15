@@ -13,4 +13,3 @@ Amazon WorkSpace, and install VS Code, Claude Code and Claude Desktop on it.
 | --- | --- |
 | [infra/workspaces/](infra/workspaces/README.md) | the install script students run, a handout script, and notes on the WorkSpaces environment |
 | [infra/ec2/](infra/ec2/README.md) | an alternative for terminal-only use: one Ubuntu instance per person |
-| [SETUP.md](SETUP.md) | sets up the AWS CLI and AI coding tools on your own computer to manage AWS |

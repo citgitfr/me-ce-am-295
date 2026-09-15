@@ -1,11 +1,3 @@
 .DS_Store
 .env
 *.pem
-
-# AI-tool rules files are not kept in this repo
-CLAUDE.md
-AGENTS.md
-GEMINI.md
-.cursor/
-.kiro/
-.claude/
