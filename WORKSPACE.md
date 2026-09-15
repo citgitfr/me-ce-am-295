@@ -16,12 +16,11 @@ only create the desktop. Provisioning takes about 20 minutes.
 
 | Setting | Choose | Why |
 | --- | --- | --- |
-| Operating system | Windows Server 2022 | The install script in Part 2 is for Windows. Avoid 2025: with nested virtualization it restarts instead of resuming. |
-| Compute | **Performance**: 2 vCPU, 8 GB memory | Enough for VS Code, Claude and a browser. Pick **Power** (4 vCPU, 16 GB) if you plan to run Docker. |
-| Storage | Root 80 GB, user 100 GB | The Performance default. Volumes can grow later but never shrink. Your files live on the user volume. Power starts at root 175 GB. |
+| Operating system | Windows Server 2022 | The install script in Part 2 is written and tested for it. |
+| Compute | **Performance**: 2 vCPU, 8 GB memory | Enough for VS Code, Claude and a browser. |
+| Storage | Root 80 GB, user 100 GB | The Performance default. Volumes can grow later but never shrink. Your files live on the user volume. |
 | Running mode | **AutoStop**, 1 hour | Billed by the hour and stops itself when you disconnect. AlwaysOn bills a full month. |
 | Encryption | Root and user volume, default key | No cost, no effect on use. |
-| Nested virtualization | **Enabled** | No cost. Allows WSL2 and Docker Desktop. |
 
 The recommended setup costs roughly 9 USD a month, plus about 0.47 USD per
 hour while it runs. Check <https://aws.amazon.com/workspaces/pricing/> for
@@ -49,7 +48,6 @@ current rates.
 7. Under **Customization**:
    - **Storage**: keep root 80 GB and user 100 GB.
    - **Encryption**: select the root volume and the user volume.
-   - **Nested virtualization**: select **Enable Nested Virtualization**.
 8. Choose **Create WorkSpaces**.
 
 The status starts as **Pending** and changes to **Available** in about 20
@@ -82,7 +80,13 @@ irm https://raw.githubusercontent.com/citgitfr/me-ce-am-295/main/infra/workspace
 It installs into your own profile, without administrator rights, in about five
 minutes. Running it again is safe. It also installs Git, which Claude Code needs.
 
-When it finishes, **open a new PowerShell window** and check that every line is green:
+Claude Desktop is the one step you finish by hand. The script opens the
+download page in the desktop's browser: choose **Download for Windows** and run
+the file. If Windows asks for administrator approval, decline; Claude still
+installs.
+
+When everything is installed, **open a new PowerShell window** and check. The
+last line should read **Ready**:
 
 ```powershell
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/citgitfr/me-ce-am-295/main/infra/workspaces/install.ps1))) -Check
@@ -102,7 +106,8 @@ When it finishes, **open a new PowerShell window** and check that every line is 
 - **VS Code.** Open it and use **File > Open Folder** on `~\projects`.
 
 Claude Code and the Code tab need a paid claude.ai plan. Keep your work under
-`~\projects`, which is on your user volume.
+`~\projects`, which is on your user volume. Cowork in Claude Desktop is not
+part of this setup: it needs administrator rights the WorkSpace does not give you.
 
 ## Troubleshooting
 
@@ -116,6 +121,5 @@ Claude Code and the Code tab need a paid claude.ai plan. Keep your work under
 | The desktop stays on "Starting" | Wait five minutes, then choose Restart WorkSpace in the client menu. |
 | `claude` is not recognized | Open a new PowerShell window. |
 | An install step prints a yellow line | Run the install command again. If it repeats, send the output to the instructor. |
-| Windows refuses Claude Desktop | Download it from <https://claude.com/download> in the desktop's browser. |
+| The Claude Desktop page did not open | Open <https://claude.com/download> in the desktop's browser yourself. |
 | Claude asks you to upgrade | Claude Code and the Code tab need a paid claude.ai plan. |
-| WSL or Docker will not start | Nested virtualization is off. In the console, select the WorkSpace, choose **Actions**, **Enable Nested Virtualization**, then start the WorkSpace again. |

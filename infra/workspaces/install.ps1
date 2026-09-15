@@ -57,6 +57,10 @@ function Remove-UserPath($dir) {
 function First-Line($exe, [string[]]$exeArgs) {
   try { return ("" + (& $exe @exeArgs 2>&1 | Select-Object -First 1)).Trim() } catch { return '' }
 }
+function Test-IsAdmin {
+  $principal = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
+  return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
 function Download($url, $file) {
   Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $file -UserAgent $BrowserUA -TimeoutSec 900 -ErrorAction Stop
 }
@@ -93,6 +97,12 @@ function Show-Status {
   $bash = [Environment]::GetEnvironmentVariable('CLAUDE_CODE_GIT_BASH_PATH', 'User')
   Info ('Git Bash for Claude Code:  ' + $(if ($bash) { $bash } else { 'not set' }))
   Info ('Claude Code on your PATH:  ' + ((Get-UserPath) -contains $LocalBin))
+  $missing = @()
+  if (-not $git) { $missing += 'Git' }
+  if (-not ((Test-Path $code) -or (Get-Command code -ErrorAction SilentlyContinue))) { $missing += 'VS Code' }
+  if (-not (Test-Path $claude)) { $missing += 'Claude Code' }
+  if (-not $desktop) { $missing += 'Claude Desktop' }
+  if ($missing.Count) { Warn ('Not ready yet: ' + ($missing -join ', ')) } else { Ok 'Ready: Git, VS Code, Claude Code and Claude Desktop are installed.' }
 }
 
 function Install-Git {
@@ -156,22 +166,38 @@ function Install-ClaudeCode {
   Ok "$LocalBin is on your PATH (this handles the installer's PATH note, if it printed one)"
 }
 
+function Open-DesktopDownload {
+  # Anthropic's regular installer sits behind a browser check, so a script cannot fetch it.
+  # It installs without administrator rights; only Cowork needs them.
+  $script:DesktopPending = $true
+  Start-Process 'https://claude.com/download' -ErrorAction SilentlyContinue
+  Warn 'Finish Claude Desktop in the browser tab that just opened:'
+  Warn '  1. Choose Download for Windows and run the downloaded file.'
+  Warn '  2. If Windows asks for administrator approval, decline. Claude still installs, without Cowork.'
+  Warn '  3. Run the -Check command afterwards to confirm.'
+}
+
 function Install-ClaudeDesktop {
   Say 'Claude Desktop'
   $desktop = Find-Desktop
   if ($desktop) { Ok "already installed: $desktop"; return }
-  Info 'downloading the per-user package'
+  if (-not (Test-IsAdmin)) {
+    Info 'You are not an administrator here, so Claude Desktop is installed with its own installer.'
+    Open-DesktopDownload
+    return
+  }
+  Info 'administrator detected: installing the full package silently'
   $msix = Join-Path $ToolkitTmp 'Claude.msix'
   Download $DesktopMsix $msix
   try {
     Add-AppxPackage -Path $msix -ErrorAction Stop
   } catch {
     Warn ('Windows refused the package: ' + ("$($_.Exception.Message)" -split "`n")[0])
-    Warn 'Install it from https://claude.com/download in this desktop''s browser instead, then run -Check.'
+    Open-DesktopDownload
     return
   }
   $desktop = Find-Desktop
-  if ($desktop) { Ok "installed $desktop; open it from the Start menu: Claude" } else { Warn 'the package was added but is not listed yet; look for Claude in the Start menu' }
+  if ($desktop) { Ok "installed $desktop; open it from the Start menu: Claude" } else { Open-DesktopDownload }
 }
 
 function Uninstall-Toolkit {
@@ -179,7 +205,15 @@ function Uninstall-Toolkit {
   $pkgs = @()
   if (Get-Command Get-AppxPackage -ErrorAction SilentlyContinue) { $pkgs = @(Get-AppxPackage -Name '*Claude*' -ErrorAction SilentlyContinue) }
   foreach ($pkg in $pkgs) { Remove-AppxPackage -Package $pkg.PackageFullName -ErrorAction SilentlyContinue }
-  if ($pkgs.Count) { Ok 'Claude Desktop removed' }
+  if ($pkgs.Count) { Ok 'Claude Desktop package removed' }
+  $squirrel = Join-Path $env:LOCALAPPDATA 'AnthropicClaude'
+  $updater = Join-Path $squirrel 'Update.exe'
+  if (Test-Path $updater) {
+    Get-Process claude -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Process -Wait -FilePath $updater -ArgumentList '--uninstall', '-s' -ErrorAction SilentlyContinue
+    Ok 'Claude Desktop removed'
+  }
+  if (Test-Path $squirrel) { Remove-Item -Recurse -Force $squirrel -ErrorAction SilentlyContinue }
   Get-Process claude -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
   foreach ($p in @((Join-Path $LocalBin 'claude.exe'), (Join-Path $env:USERPROFILE '.local\share\claude'), (Join-Path $env:USERPROFILE '.claude'), (Join-Path $env:USERPROFILE '.claude.json'), (Join-Path $env:APPDATA 'Claude'))) {
     if (Test-Path $p) { Remove-Item -Recurse -Force $p -ErrorAction SilentlyContinue }
@@ -208,6 +242,7 @@ function Invoke-CourseToolkit {
   $steps = @('Install-Git', 'Install-VSCode', 'Install-ClaudeCode')
   if (-not $SkipDesktop) { $steps += 'Install-ClaudeDesktop' }
   $failed = @()
+  $script:DesktopPending = $false
   foreach ($step in $steps) {
     try { & $step } catch { Warn "$($step -replace 'Install-', '') failed: $($_.Exception.Message)"; $failed += $step }
   }
@@ -224,6 +259,7 @@ Next steps:
                      A browser tab opens; sign in with your claude.ai account.
   4. Claude Desktop: Start menu > Claude, sign in with the same account.
 '@
+  if ($script:DesktopPending) { Warn 'Claude Desktop still needs the browser download described above.' }
 }
 
 Invoke-CourseToolkit
