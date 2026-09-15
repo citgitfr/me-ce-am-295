@@ -73,12 +73,12 @@ and the Desktop Code tab need a paid plan.
 | Check | Status |
 | --- | --- |
 | Claude Code native installer on Windows Server 2022 in the class subnet, non-admin profile | verified 2026-09-10: 25 seconds, `claude --version` and `claude doctor` clean |
-| install.ps1 full run on a WorkSpace, then `-Check` all green | pending, round 1 |
+| install.ps1 full run on the reference WorkSpace, then `-Check` | worked 2026-09-15, run by the instructor from the published URL |
 | `claude` sign-in and first session; Desktop sign-in and Code tab | pending, round 1 |
 | `-Uninstall` followed by a clean install | pending, round 2 |
 | Part 1 recommended settings match the reference WorkSpace | verified 2026-09-15: bundle, OS, compute, 80/100 GB volumes, AutoStop 60 min, WSP and encryption all match |
 | Part 1 console steps clicked through against the live console | pending; written from the AWS admin guide |
-| Claude Desktop regular installer without admin rights, declining the approval prompt | pending, round 1 |
+| Claude Desktop through the regular installer, without admin rights | worked 2026-09-15 on the reference WorkSpace |
 
 ## Findings worth keeping
 

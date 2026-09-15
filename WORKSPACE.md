@@ -6,11 +6,18 @@ and Claude Desktop.
 
 Everything in this course uses one AWS Region: **US West (Oregon)**, `us-west-2`.
 
+Before you start, have ready:
+
+- An AWS console sign-in for the course account: account ID, IAM username and
+  IAM password, with permission to create WorkSpaces.
+- A claude.ai account. Claude Code and the Code tab in Claude Desktop need a
+  paid plan.
+
+Plan on about 30 minutes, most of it waiting for the WorkSpace to be created.
+
 ## Part 1: Set up the WorkSpace
 
-You need an AWS console sign-in (account ID, IAM username, IAM password) that
-is allowed to create WorkSpaces. The course directory is already set up; you
-only create the desktop. Provisioning takes about 20 minutes.
+The course directory is already set up; you only create the desktop.
 
 ### Recommended settings
 
@@ -64,14 +71,16 @@ console too; it identifies your desktop when you ask for help.
    registration code.
 3. Sign in with your WorkSpace username and desktop password.
 
-If the email is lost, the registration code is also on your WorkSpace's page in
-the WorkSpaces console. A stopped desktop takes about two minutes to start.
+If the email is lost, find the registration code in the WorkSpaces console
+under **Directories**, next to the course directory. A stopped desktop takes
+about two minutes to start.
 When you finish, choose **Disconnect** in the client menu so AutoStop can stop
 it; your files and installed apps stay.
 
 ### Install VS Code, Claude Code and Claude Desktop
 
-On the desktop, open **Windows PowerShell** from the Start menu and paste:
+On the desktop, open **Windows PowerShell** from the Start menu and paste the
+line below. In the web client, allow clipboard access if your browser asks.
 
 ```powershell
 irm https://raw.githubusercontent.com/citgitfr/me-ce-am-295/main/infra/workspaces/install.ps1 | iex
@@ -116,10 +125,12 @@ part of this setup: it needs administrator rights the WorkSpace does not give yo
 | The console shows no WorkSpaces, or no course directory | Switch the Region to US West (Oregon). |
 | **Create WorkSpaces** is denied | Your IAM user lacks permission; ask the instructor. |
 | No invitation email after the status is Available | Select the WorkSpace, choose **Actions**, **Invite users**, **Send invite**. |
-| The registration code is rejected | Copy it again from the email or the WorkSpaces console. |
+| The registration code is rejected | Copy it again from the email, or from **Directories** in the WorkSpaces console. |
 | The desktop rejects your password | Ask the instructor to reset it, with your WorkSpace ID. |
 | The desktop stays on "Starting" | Wait five minutes, then choose Restart WorkSpace in the client menu. |
+| Paste does not work on the desktop | Allow clipboard access for the web client in your browser, then paste with Ctrl+V. |
 | `claude` is not recognized | Open a new PowerShell window. |
 | An install step prints a yellow line | Run the install command again. If it repeats, send the output to the instructor. |
 | The Claude Desktop page did not open | Open <https://claude.com/download> in the desktop's browser yourself. |
 | Claude asks you to upgrade | Claude Code and the Code tab need a paid claude.ai plan. |
+| You want to start the install over | Run the check command with `-Uninstall` in place of `-Check`, then run the install command again. This also clears the tools' settings and sign-ins. |

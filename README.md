@@ -14,9 +14,9 @@ route; EC2 stays as the fallback for people who only want a shell.
 
 ## Start here
 
-**Students:** [WORKSPACE.md](WORKSPACE.md). From the handout (account ID, IAM
-username and password, WorkSpace ID) to a desktop with VS Code, Claude Code and
-Claude Desktop in about 15 minutes.
+**Students:** [WORKSPACE.md](WORKSPACE.md). From an AWS console sign-in to a
+cloud Windows desktop with VS Code, Claude Code and Claude Desktop in about 30
+minutes, most of it waiting for the WorkSpace to be created.
 
 **Your own machine:** **[SETUP.md](SETUP.md)** is the setup flow. Follow it by
 hand, or open your AI tool in this repo and say
